@@ -1,0 +1,45 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# 파일 경로
+file_path = "/mnt/data/신용보증기금_재물안전관리정보보안교육정보_20211021.csv"
+
+# 데이터 불러오기 (인코딩 문제 해결)
+encodings = ["euc-kr", "cp949"]
+for encoding in encodings:
+    try:
+        df = pd.read_csv(file_path, encoding=encoding)
+        break
+    except UnicodeDecodeError:
+        continue
+
+# 참석률 계산 및 데이터 전처리
+df["참석률"] = df["참석인원수"] / df["대상인원수"] * 100
+
+# 이상치 제거 (0% 미만 또는 100% 초과 데이터 삭제)
+df = df[(df["참석률"] >= 0) & (df["참석률"] <= 100)]
+
+# 참석률 기본 통계량 출력
+print(df["참석률"].describe())
+
+# 참석률 분포 시각화
+plt.figure(figsize=(10, 5))
+plt.hist(df["참석률"], bins=20, edgecolor="black", alpha=0.7)
+plt.xlabel("참석률 (%)")
+plt.ylabel("빈도수")
+plt.title("참석률 분포")
+plt.grid(axis="y", linestyle="--", alpha=0.7)
+plt.show()
+
+# 강사별 평균 참석률 분석
+instructor_attend_rate = df.groupby("강사직원번호")["참석률"].mean().sort_values(ascending=False)
+
+# 강사별 평균 참석률 시각화
+plt.figure(figsize=(12, 6))
+instructor_attend_rate.plot(kind="bar", color="skyblue", edgecolor="black")
+plt.xlabel("강사직원번호")
+plt.ylabel("평균 참석률 (%)")
+plt.title("강사별 평균 참석률")
+plt.xticks(rotation=45)
+plt.grid(axis="y", linestyle="--", alpha=0.7)
+plt.show()
