@@ -1,0 +1,89 @@
+# 필요한 패키지 로드
+library(ggplot2)
+library(dplyr)
+
+# 데이터 불러오기 (파일 경로에 맞게 수정 필요)
+file_path <- "신용보증기금_재물안전관리정보보안교육정보_20211021.csv"
+data <- read.csv(file_path, fileEncoding = "euc-kr")
+
+# 1. 참석률 분석
+# 참석률 계산 및 데이터 전처리
+data$참석률 <- (data$참석인원수 / data$대상인원수) * 100
+
+# 이상치 제거 (0% 미만 또는 100% 초과 데이터 삭제)
+data <- data %>% filter(참석률 >= 0 & 참석률 <= 100)
+
+# 참석률 기본 통계량 확인
+summary(data$참석률)
+
+# 참석률 분포 시각화
+ggplot(data, aes(x = 참석률)) +
+  geom_histogram(binwidth = 5, fill = "skyblue", color = "black", alpha = 0.7) +
+  labs(title = "참석률 분포", x = "참석률 (%)", y = "빈도수") +
+  theme_minimal()
+
+# 2. 강사별 평균 참석률 분석
+instructor_attend_rate <- data %>%
+  group_by(강사직원번호) %>%
+  summarise(평균참석률 = mean(참석률)) %>%
+  arrange(desc(평균참석률))
+
+# 강사별 평균 참석률 시각화
+ggplot(instructor_attend_rate, aes(x = reorder(강사직원번호, -평균참석률), y = 평균참석률)) +
+  geom_bar(stat = "identity", fill = "lightgreen", color = "black") +
+  labs(title = "강사별 평균 참석률", x = "강사직원번호", y = "평균 참석률 (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# 3. 삭제된 데이터 비율 분석
+deleted_data_ratio <- data %>%
+  group_by(삭제여부) %>%
+  summarise(비율 = n() / nrow(data) * 100)
+
+# 삭제된 데이터 비율 출력
+print(deleted_data_ratio)
+
+# 삭제된 데이터 비율 시각화
+ggplot(deleted_data_ratio, aes(x = "", y = 비율, fill = 삭제여부)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar("y", start = 0) +
+  labs(title = "삭제된 데이터 비율", x = NULL, y = NULL) +
+  theme_minimal() +
+  theme(axis.text.x = element_blank(),
+        axis.ticks = element_blank(),
+        panel.grid = element_blank())
+
+# 4. 강사별 교육 참가율 비교
+# 강사별 총 대상 인원수 및 참석 인원수 계산
+grouped_instructor <- data %>%
+  group_by(강사직원번호) %>%
+  summarise(총대상인원 = sum(대상인원수), 총참석인원 = sum(참석인원수)) %>%
+  mutate(교육참가율 = (총참석인원 / 총대상인원) * 100) %>%
+  arrange(desc(교육참가율))
+
+# 강사별 교육 참가율 출력
+print(grouped_instructor)
+
+# 강사별 교육 참가율 시각화
+ggplot(grouped_instructor, aes(x = reorder(강사직원번호, -교육참가율), y = 교육참가율)) +
+  geom_bar(stat = "identity", fill = "orange", color = "black") +
+  labs(title = "강사별 교육 참가율 비교", x = "강사직원번호", y = "교육 참가율 (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# 5. 특정 직원의 데이터 처리 빈도 분석
+# 처리 직원별 데이터 처리 횟수 계산
+employee_processing_freq <- data %>%
+  group_by(처리직원번호) %>%
+  summarise(처리횟수 = n()) %>%
+  arrange(desc(처리횟수))
+
+# 처리 직원별 데이터 처리 횟수 출력
+print(employee_processing_freq)
+
+# 처리 직원별 데이터 처리 빈도 시각화
+ggplot(employee_processing_freq, aes(x = reorder(처리직원번호, -처리횟수), y = 처리횟수)) +
+  geom_bar(stat = "identity", fill = "blue", color = "black") +
+  labs(title = "특정 직원의 데이터 처리 빈도", x = "처리직원번호", y = "데이터 처리 횟수") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
